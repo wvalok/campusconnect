@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  major        String?
+  gradYear     Int?
+  avatarColor  String   @default("#3563eb")
+  createdAt    DateTime @default(now())
+
+  memberships            Membership[]
+  rsvps                  Rsvp[]
+  hackathonRegistrations HackathonRegistration[]
+}
+
+model Club {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String
+  category    String
+  kind        String   @default("club") // "club" or "society"
+  meets       String?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+
+  memberships   Membership[]
+  events        Event[]
+  announcements Announcement[]
+}
+
+model Membership {
+  id       String   @id @default(cuid())
+  userId   String
+  clubId   String
+  role     String   @default("member")
+  joinedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clubId])
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  location    String
+  category    String
+  startsAt    DateTime
+  endsAt      DateTime
+  capacity    Int?
+  imageUrl    String?
+  clubId      String?
+  createdAt   DateTime @default(now())
+
+  club  Club?  @relation(fields: [clubId], references: [id], onDelete: SetNull)
+  rsvps Rsvp[]
+}
+
+model Rsvp {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String
+  status    String   @default("going")
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  audience  String   @default("campus") // "campus" or "club"
+  pinned    Boolean  @default(false)
+  clubId    String?
+  createdAt DateTime @default(now())
+
+  club Club? @relation(fields: [clubId], references: [id], onDelete: Cascade)
+}
+
+model Hackathon {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  title        String
+  organiser    String
+  description  String
+  theme        String
+  mode         String   @default("offline") // "online", "offline", "hybrid"
+  venue        String
+  prizePool    String?
+  teamMin      Int      @default(1)
+  teamMax      Int      @default(4)
+  startsAt     DateTime
+  endsAt       DateTime
+  registerBy   DateTime
+  imageUrl     String?
+  createdAt    DateTime @default(now())
+
+  registrations HackathonRegistration[]
+}
+
+model HackathonRegistration {
+  id          String   @id @default(cuid())
+  userId      String
+  hackathonId String
+  teamName    String?
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hackathon Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, hackathonId])
+}
